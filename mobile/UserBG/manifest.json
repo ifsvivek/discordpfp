@@ -1,10 +1,10 @@
 {
     "name": "UserBG",
-    "description": "https://github.com/Discord-Custom-Covers/usrbg#request-your-own-usrbg",
+    "description": "this is test plugin",
     "authors": [
         {
-            "name": "sapphire",
-            "id": "757982547861962752"
+            "name": "ifsvivek",
+            "id": "471320666075824134"
         }
     ],
     "main": "src/index.tsx",
