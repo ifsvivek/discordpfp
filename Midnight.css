@@ -28,7 +28,7 @@
 	--accent-5: hsl(190, 80%, 30%);
 
 	/* color of green online dot, discord default is #23a55a */
-	--online-indicator: var(--accent-2);
+	--online-indicator: hsl(145, 65%, 39%);
 
 	/* color of mentions and messages that mention you */
 	--mention: hsla(190, 80%, 52%, 0.08);
