@@ -135,6 +135,9 @@ path[fill="var(--status-danger)"] /* vencord game activity toggle */ {
 }
 
 /* change online indicator color */
+.wrapper-3Un6-K[aria-label*="Online"] rect[fill="#23a55a"]  /* replace green online circles */ {
+	fill: var(--online-indicator) !important;
+}
 
 /* create/join a server modal color fix */
 .layer-fP3xEz .theme-light {
@@ -639,7 +642,7 @@ path[fill="var(--status-danger)"] /* vencord game activity toggle */ {
 	--primary-730: var(--bg-3);
 	--primary-800: var(--bg-3);
 
-	--green-360: var(--accent-2); /* replace other green stuff */
+	--green-360: var(--online-indicator); /* replace other green stuff */
 	--green-430: var(--accent-3); /* green buttons (like invite) */
 	--green-500: var(--accent-4); /* green button hover */
 	--green-530: var(--accent-5); /* green button click */
