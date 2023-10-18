@@ -16,7 +16,7 @@
 	--accent-5: hsl(190, 80%, 30%);
 
 	/* color of green online dot, discord default is #23a55a */
-	--online-indicator: var(--accent-2);
+	--online-indicator: #23a55a;
 
 	/* color of mentions and messages that mention you */
 	--mention: hsla(190, 80%, 52%, 0.08);
@@ -321,7 +321,7 @@ path[fill="var(--status-danger)"] /* vencord game activity toggle */ {
 	display: none;
 }
 .wordmarkWindows-1rsity::after {
-	content: 'Midnight';
+	content: 'Discord';
 	display: block;
 	position: relative;
 	width: 200px;
@@ -357,7 +357,7 @@ path[fill="var(--status-danger)"] /* vencord game activity toggle */ {
 	background-color: hsl(350, 50%, 50%) !important;
 }
 .typeWindows-3ILlhq .winButtonMinMax-nT2Irc:nth-child(3)::after {
-	background-color: hsl(150, 50%, 50%) !important;
+	background-color: hsl(136, 50%, 50%) !important;
 }
 .typeWindows-3ILlhq .winButtonMinMax-nT2Irc:nth-child(4)::after {
 	background-color: hsl(50, 50%, 50%) !important;
