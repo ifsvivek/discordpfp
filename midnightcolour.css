@@ -346,7 +346,7 @@ div[class^='winButtonMinMax']:nth-child(4)::after {
 	width: 65%;
 	height: 65%;
 	background: var(--text-4);
-	-webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/c/c4/Font_Awesome_5_solid_moon.svg');
+	-webkit-mask-image: url('https://ifsvivek.github.io/discordpfp/discord.svg');
 }
 .wrapper_d281dd:hover > .childWrapper__01b9c::before,
 .wrapper_d281dd.selected_f5ec8e > .childWrapper__01b9c::before {
