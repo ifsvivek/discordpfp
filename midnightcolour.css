@@ -55,8 +55,8 @@
 	--font-primary: 'gg sans'; /* change to 'gg sans' for default discord font */
 	--font-display: 'gg sans'; /* change to 'gg sans' for default discord font */
 
-	--moon-icon: block; /* change to 'none' to hide top left moon icon */
-	--discord-icon: none; /* change to 'block' to show default discord top left icon */
+	--moon-icon: none; /* change to 'none' to hide top left moon icon */
+	--discord-icon: block; /* change to 'block' to show default discord top left icon */
 }
 
 /* modify colors */
