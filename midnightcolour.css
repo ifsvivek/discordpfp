@@ -18,7 +18,7 @@
 	--accent-5: hsl(190, 80%, 30%);
 
 	/* color of green online dot, change to #23a55a for default green */
-	--online-indicator: var(--accent-2);
+	--online-indicator: hsl(145, 65%, 39%);
 
 	/* color of mentions and messages that mention you */
 	--mention: hsla(190, 80%, 52%, 0.1);
