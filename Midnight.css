@@ -2,7 +2,9 @@
  * @name midnight
  * @description A darkened discord theme.
  * @author Vivek
- * @version 1.5.1
+ * @version 1.6.0
+ * @source https://ifsvivek.github.io/discordpfp/
+ * @authorId 471320666075824134
 */
 
 /* IMPORTANT: make sure to enable dark mode in discord settings for the theme to apply properly!! */
@@ -31,7 +33,7 @@
 	--online-indicator: hsl(145, 65%, 39%);
 
 	/* color of mentions and messages that mention you */
-	--mention: hsla(190, 80%, 52%, 0.08);
+	--mention: hsla(190, 80%, 52%, 0.1);
 	/* color of mentions and messages that mention you when hovered */
 	--mention-hover: hsla(190, 80%, 52%, 0.05);
 
@@ -61,4 +63,12 @@
 	--active: hsla(220, 20%, 40%, 0.2);
 	/* color of messages when hovered */
 	--message-hover: hsla(220, 0%, 0%, 0.1);
+
+	/* font */
+	--font-primary: 'figtree'; /* change to 'gg sans' for default discord font */
+	--font-display: 'figtree'; /* change to 'gg sans' for default discord font */
+
+	/* top left icon */
+	--moon-icon: block; /* change to 'none' to hide moon icon */
+	--discord-icon: none; /* change to 'block' to show default discord icon */
 }
