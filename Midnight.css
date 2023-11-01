@@ -69,6 +69,6 @@
 	--font-display: 'figtree'; /* change to 'gg sans' for default discord font */
 
 	/* top left icon */
-	--moon-icon: block; /* change to 'none' to hide moon icon */
-	--discord-icon: none; /* change to 'block' to show default discord icon */
+	--moon-icon: none; /* change to 'none' to hide moon icon */
+	--discord-icon: block; /* change to 'block' to show default discord icon */
 }
