@@ -1,10 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
+/* customize things here */
 :root {
+	/* font, change to 'gg sans' for default discord font*/
+	--font: 'figtree';
+
+	/* color of green online dot, change to #23a55a for default green */
+	--online-indicator: var(--accent-2);
+
+	/* top left icon */
+	--moon-icon: none; /* change to none to hide moon icon */
+	--discord-icon: block; /* change to block to show default discord icon */
+
 	/* amount of spacing and padding */
 	--spacing: 12px;
-	/* radius of round corners */
-	--roundness: 16px;
+
+	/* roundness of big panel outer corners */
+	--roundness-xl: 22px;
+	/* popout panels */
+	--roundness-l: 20px;
+	/* smaller panels, images, embeds */
+	--roundness-m: 16px;
+	/* members, settings inputs */
+	--roundness-s: 12px;
+	/* channels, buttons*/
+	--roundness-xs: 10px;
+	/* searchbar, small elements */
+	--roundness-xxs: 8px;
 
 	/* color of links */
 	--accent-1: hsl(190, 80%, 60%);
@@ -16,10 +38,6 @@
 	--accent-4: hsl(190, 80%, 36%);
 	/* color of accented buttons when clicked */
 	--accent-5: hsl(190, 80%, 30%);
-
-	/* color of green online dot, change to #23a55a for default green */
-	--online-indicator: hsl(145, 65%, 39%);
-
 	/* color of mentions and messages that mention you */
 	--mention: hsla(190, 80%, 52%, 0.1);
 	/* color of mentions and messages that mention you when hovered */
@@ -44,28 +62,25 @@
 	--bg-3: hsl(220, 15%, 13%);
 	/* main background color */
 	--bg-4: hsl(220, 15%, 10%);
-
 	/* color of channels and icon buttons when hovered */
 	--hover: hsla(230, 20%, 40%, 0.1);
 	/* color of channels and icon buttons when clicked or selected */
 	--active: hsla(220, 20%, 40%, 0.2);
 	/* color of messages when hovered */
 	--message-hover: hsla(220, 0%, 0%, 0.1);
+}
 
-	/* font */
-	--font-primary: 'figtree'; /* change to 'gg sans' for default discord font */
-	--font-display: 'figtree'; /* change to 'gg sans' for default discord font */
-
-	/* top left icon */
-	--moon-icon: none; /* change to 'none' to hide moon icon */
-	--discord-icon: block; /* change to 'block' to show default discord icon */
+:root {
+	--font-primary: var(--font), 'Noto Sans', 'Helvetica Neue', Helvetica, Arial,
+		sans-serif;
+	--font-display: var(--font), 'Noto Sans', 'Helvetica Neue', Helvetica, Arial,
+		sans-serif;
 }
 
 /* modify colors */
 #app-mount .container__590e2 /* channel list */,
 .privateChannels__93473 /* dms list */,
 #app-mount .container_ca50b9 /* user panel inner */,
-.container_b2ce9c /* member list */,
 .members__9f47b /* member list inner */,
 .member_aa4760 /* member list members */,
 .searchResultsWrap__9f374 /* search results */,
@@ -79,7 +94,8 @@
 .theme-dark .container__7590f /* browse channels inner */,
 .chat__52833.background_cb0a80 /* server guide body */,
 .theme-dark .scrollerContainer_bf5dbd /* channels and roles customize */,
-.shop_b31ed2 /* shop */ {
+.shop_b31ed2 /* shop */,
+.wrapper_bd2abe.minimum_ebf000 /* private call */ {
 	background: var(--bg-4);
 }
 .mainCard__8a660 /* forum post */ {
@@ -101,11 +117,19 @@
 .chat__52833 /* chat + member list */,
 .sidebar_ded4b5 /* channel sidebar */,
 .privateChannels__93473 .scroller__4b984 /* dms list inner */,
-.theme-dark .innerHeader_afca2f:after /* channels and roles header shadow */ {
+.theme-dark .innerHeader_afca2f:after /* channels and roles header shadow */,
+.channelTextArea__2e60f /* message bar underneath */,
+.attachedBars_da3c74 /* reply bar underneath */ {
 	background: none;
 }
 .selected__0b1ad .header__104ca, .clickable__2d589 .header__104ca:hover /* server name hover */ {
 	background: var(--message-hover);
+}
+.message__80c10.replying_d7b6ad.selected_fd9051, .mouse-mode.full-motion .replying_d7b6ad:hover /* fix reply message hover */ {
+	background: var(--background-message-highlight-hover);
+}
+div.message__80c10.replying_d7b6ad::before /* change reply message bar to neutral */ {
+	background: var(--text-2);
 }
 .activeButtonChild__6e162 {
 	color: var(--accent-2);
@@ -121,7 +145,9 @@
 .divider_b9338f /* unread divider */ {
 	--status-danger: var(--accent-3);
 }
-.message__80c10.mentioned__58017:before /* mention message left edge */,
+.message__80c10.mentioned__58017:before /* mention message left edge */ {
+	background: var(--accent-3);
+}
 .container__871ba.checked__6bdb0 /* settings checkbuttons */ {
 	background: var(--accent-3) !important;
 }
@@ -143,6 +169,10 @@ path[fill='rgba(35, 165, 90, 1)'] {
 rect[fill='#23a55a'] {
 	fill: var(--online-indicator) !important;
 }
+.status__1c26d[style='background-color: var(--green-360);'],
+.status__1c26d[style='background-color: currentcolor;'] {
+	background-color: var(--online-indicator) !important;
+}
 
 /* separate header bar */
 .title_b7d661.themed_b152d4 /* remove bg */ {
@@ -161,7 +191,10 @@ rect[fill='#23a55a'] {
 	background: var(--background-primary);
 	width: 100%;
 	height: 48px;
-	border-radius: var(--roundness) var(--roundness) 0 0;
+	border-radius: var(--roundness-xl) var(--roundness-xl) 0 0;
+}
+.wrapper_bd2abe.minimum_ebf000 ~ .content__1a4fe .container__93316::before /* remove when in private call */ {
+	display: none;
 }
 
 /* rearrange toolbar */
@@ -188,7 +221,7 @@ a[href="https://support.discord.com"] /* hide help */
 
 /* add spacing */
 .base__3e6af /* outside edges */ {
-	margin: 0 var(--spacing) var(--spacing) var(--spacing);
+	margin: 0 var(--spacing) var(--spacing) 0;
 }
 .sidebar_ded4b5 /* channel list and user panel */,
 .content__1a4fe /* between chat and member list */ {
@@ -204,9 +237,12 @@ a[href="https://support.discord.com"] /* hide help */
 	width: var(--spacing);
 }
 .wrapper_bd2abe.fullScreen__5263c .callContainer_cbde45 /* fullscreen vc */ {
-	margin: var(--spacing) 0 0 0;
+	margin-top: var(--spacing);
 }
-
+.notice__5fd4c /* banner notice */,
+.wrapper_bd2abe.minimum_ebf000 /* private call */ {
+	margin-bottom: var(--spacing);
+}
 /* fix padding */
 #vc-spotify-player /* vencord spotify */,
 .container_d667ff /* vc panel */,
@@ -226,8 +262,11 @@ a[href="https://support.discord.com"] /* hide help */
 .container_def45c /* message request */,
 #app-mount .callContainer_cbde45 /* vc */, 
 .chat__52833 /* general chat container (for browse channels page */,
-.animatedContainer__341f6 /* server image card */ {
-	border-radius: var(--roundness);
+.animatedContainer__341f6 /* server image card */,
+.notice__5fd4c /* banner notice */,
+.wrapper_bd2abe.minimum_ebf000, /* private call */
+.wrapper_bd2abe.minimum_ebf000 ~ .content__1a4fe /* chat under private call */ {
+	border-radius: var(--roundness-xl);
 	overflow: hidden;
 }
 .container__93316 /* main chat */,
@@ -239,13 +278,78 @@ a[href="https://support.discord.com"] /* hide help */
 .userPanelOuter__880e5 /* profile panel inner */,
 .userPanelInner_eddf4c /* profile panel inner inner */,
 .userPanelInner_eddf4c::before /* profile panel inner inner filter */ {
-	border-radius: 0 0 var(--roundness) var(--roundness);
+	border-radius: 0 0 var(--roundness-xl) var(--roundness-xl);
+}
+
+/* more rounded corners */
+.messagesPopoutWrap_b3b384 /* inbox, pinned messages popout */,
+.container__8261a /* thread popout */,
+.menu_dc52c6 .item__183e8d /* server option popout */,
+.userPopoutOuter_d739b2 /* user profile popout */,
+.root_ba16f0 /* user profile modal */,
+.contentWrapper__321ed /* emoji, sticker, gif pickers */ {
+	border-radius: var(--roundness-l);
+}
+.roundedBanner__9fa0a /* user profile popout top */ {
+	border-radius: calc(var(--roundness-l) - 4px) calc(var(--roundness-l) - 4px)
+		0 0;
+}
+.userPopoutInner_f545a3:before /* user profile popout bottom */,
+.userProfileModalInner__7c87d:before /* user profile modal bottom */ {
+	border-radius: calc(var(--roundness-l) - 4px);
+}
+.overlayBackground__86b78 /* user profile inner */ {
+	border-radius: var(--roundness-s);
+}
+.menu_dc52c6 /* general popouts */,
+.embed_d3cbe3 /* embeds */,
+.mediaAttachmentsContainer_edba75 /* image container */,
+.oneByOneGridSingle__01756 /* image container single */,
+.imageContainer__04362 .imageWrapper_fd6587 /* gif wrapper */,
+.markup_a7e664 code /* code block */,
+.itemCard__1f162 /* friend activity */,
+.peopleListItem_d14722:hover /* online list friends */ {
+	border-radius: var(--roundness-m);
+}
+.scrollableContainer__33e06 /* message bar */,
+.select__0eb48 /* bot dropdown select */,
+.layout_bb8e67 /* members */,
+.interactive__776ee /* dms */,
+.container__767d1 /* thread link */,
+.input_d266e7 /* settings inputs */,
+.item_b7fb7e /* settings radiobutton bars */,
+.item_b7fb7e .radioBar__40e1b /* settings radiobutton bars */ {
+	border-radius: var(--roundness-s);
+}
+.scrollableContainer__33e06.hasConnectedBar__277ab /* fix message bar with reply bar */ {
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+.replyBar_b64d74 {
+	border-radius: var(--roundness-s) var(--roundness-s) 0 0;
+}
+.link__95dc0 /* channels */,
+.content_b60865 /* member connected to vc */,
+.side_b4b3f6 .item__48dda /* settings tabs */,
+button.button_afdfd9 /* small buttons */,
+.container__7712a /* friend searchbar */,
+.item__183e8 /* general popout buttons */ {
+	border-radius: var(--roundness-xs);
+}
+.wrapper_f46140 /* mentions */,
+.searchBar_e0c60b /* search bar */,
+.searchBar_e4ea2a .searchBarComponent__22760 /* find conversation search bar */,
+.topPill__0cdf1 .item__48dda /* friend online/categories */ {
+	border-radius: var(--roundness-xxs);
+}
+#app-mount .centerButton__3205b /* fix vc buttons */ {
+	border-radius: 50%;
 }
 
 /* separate guilds panel background */
 .guilds__2b93a {
 	background: var(--bg-4);
-	border-radius: var(--roundness);
+	border-radius: var(--roundness-xl);
 	margin: 0 0 var(--spacing) var(--spacing);
 }
 .guilds__2b93a.hidden__7c832 {
@@ -254,33 +358,39 @@ a[href="https://support.discord.com"] /* hide help */
 #app-mount .scroller__3d071 {
 	padding: 12px 0;
 }
+.base__3e6af {
+	margin-left: var(--spacing);
+}
 .guilds__2b93a::after /* add bottom scroll shadow */,
-.members__9f47b::after {
+.membersWrap__90226::after {
 	content: '';
 	position: absolute;
-	background: linear-gradient(transparent, var(--bg-4));
-	bottom: 0px;
-	width: 100%;
-	height: 20px;
+	background: linear-gradient(transparent 85%, var(--bg-4) 100%);
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 100px;
 	pointer-events: none;
+	border-radius: 0 0 var(--roundness-xl) var(--roundness-xl);
 }
 .guilds__2b93a::before /* add top scroll shadow */ {
 	content: '';
 	position: absolute;
-	background: linear-gradient(var(--bg-4), transparent);
-	top: 0px;
-	width: 100%;
-	height: 20px;
+	background: linear-gradient(var(--bg-4) 0%, transparent 15%);
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 100px;
 	pointer-events: none;
-	z-index: 2;
+	z-index: 1;
 }
 .childWrapper__01b9c {
 	background: var(--bg-3);
 }
-.container__037ed > div[style$='display: flex;'] > .guilds__2b93a {
+.container__037ed > [style$='display: flex;'] > .guilds__2b93a {
 	margin: 0;
 }
-.container__037ed > div[style$='display: flex;'] {
+.container__037ed > [style$='display: flex;'] {
 	margin: 0 0 var(--spacing) var(--spacing);
 }
 /* UNCOMMENT IF YOU REMOVE THE ABOVE SECTION "separate guilds panel background" */
@@ -299,63 +409,72 @@ a[href="https://support.discord.com"] /* hide help */
 }
 
 /* top corner title */
-div[class^='wordmarkWindows'] > svg {
+[class^='wordmarkWindows'] {
+	padding: 4px var(--spacing);
+}
+[class^='wordmarkWindows'] > svg {
 	display: none;
 }
-div[class^='wordmarkWindows']::after {
+[class^='wordmarkWindows']::after {
 	content: 'Discord';
 	display: block;
 	position: relative;
-	width: 200px;
 	height: 16px;
 	line-height: 16px;
-	font-family: var(--font-headline);
-	font-size: 10px;
-	font-weight: 600;
+	font-family: var(--font);
+	font-size: 13px;
+	font-weight: 900;
 	color: var(--text-5);
+	transform: scaleX(1.2);
+	margin-left: 6px;
+}
+
+/* top bar height */
+[class^='typeWindows'] {
+	height: calc(var(--spacing) + 8px);
 }
 
 /* window controls */
-div[class^='typeWindows'] {
-	height: 20px;
-}
-div[class^='winButton'] > svg {
+[class^='winButton'] > svg {
 	display: none;
 }
-div[class^='winButton'] {
+[class^='winButton'] {
 	background: none !important;
 	top: 0;
-	width: 20px;
-	height: 20px;
+	width: calc(var(--spacing) + 8px);
+	height: calc(var(--spacing) + 8px);
 	margin: -2px 4px 0px 0px;
 }
-div[class^='winButton']::after {
+[class^='winButtonClose'] {
+	margin: -2px calc(var(--spacing) - 4px) 0px 0px;
+}
+[class^='winButton']::after {
 	content: '';
 	height: 12px;
 	width: 12px;
 	border-radius: 12px;
 }
-div[class^='winButton']:hover::after {
+[class^='winButton']:hover::after {
 	filter: brightness(0.8);
 }
-div[class^='winButton']:active::after {
+[class^='winButton']:active::after {
 	transform: scale(0.9);
 }
-div[class^='winButtonClose']::after {
+[class^='winButtonClose']::after {
 	background-color: hsl(350, 50%, 50%) !important;
 }
-div[class^='winButtonMinMax']:nth-child(3)::after {
+[class^='winButtonMinMax']:nth-child(3)::after {
 	background-color: hsl(150, 50%, 50%) !important;
 }
-div[class^='winButtonMinMax']:nth-child(4)::after {
+[class^='winButtonMinMax']:nth-child(4)::after {
 	background-color: hsl(50, 50%, 50%) !important;
 }
 
 /* add moon */
-.childWrapper__01b9c > svg {
+.childWrapper__01b9c > svg:not(.favoriteIcon__91c06) {
 	display: var(--discord-icon);
 }
-.childWrapper__01b9c:has(> svg)::before {
+.childWrapper__01b9c:has(> svg:not(.favoriteIcon__91c06))::before {
 	content: '';
 	display: var(--moon-icon);
 	position: absolute;
@@ -392,6 +511,13 @@ div[class^='winButtonMinMax']:nth-child(4)::after {
 	width: 4px;
 	border-radius: 4px;
 }
+/* modify embeds */
+.embedFull__8dc21 {
+	border: 4px solid var(--bg-2);
+	border-top-color: transparent !important;
+	border-bottom-color: transparent !important;
+	border-right-color: transparent !important;
+}
 
 /* make emoji selector same color */
 .emojiButtonNormal__73cd3 .sprite__294b3 {
@@ -400,6 +526,11 @@ div[class^='winButtonMinMax']:nth-child(4)::after {
 /* filter login image */
 .artwork__8fc92 {
 	filter: saturate(0.3) hue-rotate(-15deg) brightness(0.4);
+}
+
+/* horizontal server list fix */
+#app-mount .app_b1f720 .base__3e6af {
+	top: calc(var(--server-container) + var(--spacing)) !important;
 }
 
 .theme-dark {
@@ -413,8 +544,8 @@ div[class^='winButtonMinMax']:nth-child(4)::after {
 	--background-mentioned-hover: var(--mention-hover);
 	--background-message-automod: hsl(var(--red-400-hsl) / 0.05);
 	--background-message-automod-hover: hsl(var(--red-400-hsl) / 0.1);
-	--background-message-highlight: hsl(var(--brand-360-hsl) / 0.08);
-	--background-message-highlight-hover: hsl(var(--brand-360-hsl) / 0.06);
+	--background-message-highlight: var(--active);
+	--background-message-highlight-hover: var(--hover);
 	--background-message-hover: var(--message-hover);
 	--background-mobile-primary: var(--bg-4);
 	--background-mobile-secondary: var(--primary-630);
@@ -495,7 +626,7 @@ div[class^='winButtonMinMax']:nth-child(4)::after {
 	--button-positive-background-hover: var(--green-500);
 	--button-secondary-background: var(--bg-2);
 	--button-secondary-background-active: var(--text-5);
-	--button-secondary-background-disabled: red;
+	--button-secondary-background-disabled: var(--bg-2);
 	--button-secondary-background-hover: var(--bg-1);
 	--card-gradient-bg: hsl(var(--black-500-hsl) / 0.4);
 	--card-gradient-pressed-bg: hsl(var(--black-500-hsl) / 0.5);
