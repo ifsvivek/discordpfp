@@ -6,7 +6,7 @@
 	--font: 'figtree';
 
 	/* color of green online dot, change to #23a55a for default green */
-	--online-indicator: var(--accent-2);
+	--online-indicator: hsl(146, 65%, 39%);
 
 	/* top left icon */
 	--moon-icon: none; /* change to none to hide moon icon */
