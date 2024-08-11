@@ -10,3 +10,10 @@
   object-fit: scale-down;
   aspect-ratio: auto;
 }
+
+[src^="https://cdn.discordapp.com/banners/748102276471717939"]
+{
+  content: url(https://i.imgur.com/O3VUVQ8.gif);
+  object-fit: scale-down;
+  aspect-ratio: auto;
+}
