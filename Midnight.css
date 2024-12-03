@@ -73,6 +73,11 @@
 	--login-bg-filter: saturate(0.3) hue-rotate(-15deg) brightness(0.4); /* login background artwork */
 	--green-to-accent-3-filter: hue-rotate(56deg) saturate(1.43); /* add friend page explore icon */
 	--blurple-to-accent-3-filter: hue-rotate(304deg) saturate(0.84) brightness(1.2); /* add friend page school icon */
+
+	/* choose style for window control buttons (minimize-maximize-close) */
+	/* block to show, none to hide; choose only one to show!*/
+	--windows-nav: none; /* default windows-style buttons */
+	--custom-nav: block; /* custom mac-style buttons */
 }
 
 /* change fonts (edit the variables above, not this part) */
@@ -173,9 +178,10 @@ div.message_d5deea.replying_d5deea::before /* change reply message bar to neutra
 	color: var(--accent-3) !important;
 }
 .divider_d5deea /* unread divider */,
-.mention_c10249 /* NEW unread pill */,
+.mention_edf32f /* NEW unread pill */,
 .mentionsBar_eba0ba /* channel list new mention pill */ {
 	--status-danger: var(--accent-3);
+	color: var(--status-danger-text);
 }
 .message_d5deea.mentioned_d5deea:before /* mention message left edge */,
 .botTagOP_a9e77f /* OP tag */ {
@@ -263,7 +269,7 @@ path[fill='var(--white-500)'] {
 .container_cebd1c.checked_cebd1c > .slider_cebd1c > rect /* settings checkbutton circle */,
 .userMenuItem_e1268c path[fill="var(--white-500)"] /* account switcher account hover */,
 .colorDefault_d90b3d.focused_d90b3d path {
-	fill: var(--text-0);
+	fill: var(--text-0) !important;
 }
 .closeIcon__967e7 path /* alert banner close icon */ {
 	fill: currentColor;
@@ -470,7 +476,6 @@ a[href="https://support.discord.com"] /* hide help */
 .applicationStore_cecc86 /* nitro page */,
 #app-mount .container_f3abf4 /* message requests */,
 .shop_e77fa3 /* discord shop */,
-.container_d576e9 /* family center */,
 .container_d1c246 /* message request */,
 #app-mount .callContainer_d880dc /* vc */, 
 .chat_a7d72e /* general chat container (for browse channels page */,
@@ -485,6 +490,9 @@ a[href="https://support.discord.com"] /* hide help */
 .thin_c49869.scrollerBase_c49869,
 .layerContainer_cd0de5 .outer_c69a7b /* profile popout */ {
 	border-radius: var(--roundness-xl);
+	overflow: hidden;
+}
+.container_d576e9 /* family center */ {
 	overflow: hidden;
 }
 .sidebar_a4d4d9 /* fix */ {
@@ -708,7 +716,7 @@ button.button_dd4f85 /* small buttons */,
 
 /* window controls */
 [class^='winButton'] > svg {
-	display: none;
+	display: var(--windows-nav);
 }
 [class^='winButton'] {
 	background: none !important;
@@ -721,6 +729,7 @@ button.button_dd4f85 /* small buttons */,
 	padding-right: calc(var(--spacing) - 5px);
 }
 [class^='winButton']::after {
+	display: var(--custom-nav);
 	content: '';
 	height: 12px;
 	width: 12px;
@@ -931,11 +940,16 @@ button.button_f67531 /* make user panel buttons round */ {
 }
 
 /* fix discovery icon */
-.footer_aa1bff {
+.footer_d71945 {
 	background: var(--bg-overlay-app-frame, var(--bg-4));
 }
 .fixedDiscoveryIcon_fea3ef {
 	color: var(--green-360);
+}
+
+/* fix bottom left user profile corner roundness */
+.inner_c69a7b.panel_c69a7b {
+	border-radius: 0 0 var(--roundness-xl) var(--roundness-xl);
 }
 
 .theme-light {
