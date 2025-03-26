@@ -3,84 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Run: Basic Dash</title>
+    <title>Pixel Run: Enhanced Dash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom styles if needed, or to override Tailwind defaults */
         body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
             font-family: 'Courier New', Courier, monospace;
-            touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+            overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+            touch-action: manipulation; /* Improve touch responsiveness */
         }
         canvas {
-            border: 1px solid #333;
-            background-color: #fff;
-            /* Simple pixelated scaling if needed, but might blur */
-            /* image-rendering: pixelated; */
-            /* image-rendering: -moz-crisp-edges; */
-            /* image-rendering: crisp-edges; */
+            /* Ensure crisp pixels when scaling */
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            background-color: #ffffff; /* Canvas background */
         }
-        #info {
-            margin-top: 10px;
-            font-size: 1.2em;
-            color: #333;
-        }
-        #controls {
-            margin-top: 15px;
-            color: #555;
-            font-size: 0.9em;
-        }
-        #gameOver {
+        /* Style for the loading message */
+        #loadingMessage {
             position: absolute;
-            top: 40%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 2em;
-            color: #d9534f;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            display: none; /* Hidden by default */
-            text-align: center;
-            border: 2px solid #d9534f;
+            font-size: 1.5em;
+            color: #333;
         }
-         #gameOver button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 0.8em;
-            cursor: pointer;
-            background-color: #5cb85c;
-            color: white;
-            border: none;
-            border-radius: 5px;
-         }
-         #gameOver button:hover {
-            background-color: #4cae4c;
-         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div id="info">
-        Score: <span id="score">0</span> | High Score: <span id="highScore">0</span>
+    <div class="w-full max-w-3xl text-center mb-4">
+        <h1 class="text-2xl font-bold text-gray-700 mb-2">Pixel Run: Enhanced Dash</h1>
+        <div id="info" class="text-lg font-semibold text-gray-600">
+            Score: <span id="score" class="font-bold text-blue-600">0</span> | High Score: <span id="highScore" class="font-bold text-green-600">0</span>
+        </div>
     </div>
 
-    <canvas id="gameCanvas" width="600" height="200"></canvas>
-
-    <div id="controls">
-        Press SPACE or TAP to Jump
+    <div class="w-full max-w-3xl relative">
+        <canvas id="gameCanvas" width="800" height="250" class="w-full border-2 border-gray-400 rounded shadow-md"></canvas>
+        <div id="loadingMessage" class="font-semibold">Loading Assets...</div>
+        <div id="gameOver" class="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-60 text-white p-6 rounded hidden">
+            <h2 class="text-4xl font-bold mb-4 text-red-500">Game Over!</h2>
+            <div id="finalScore" class="text-2xl mb-6"></div>
+            <button id="restartButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded text-lg shadow transition duration-200 ease-in-out">
+                Restart
+            </button>
+        </div>
     </div>
 
-    <div id="gameOver">
-        Game Over!
-        <br>
-        <span id="finalScore"></span>
-        <br>
-        <button id="restartButton">Restart</button>
+    <div id="controls" class="mt-4 text-sm text-gray-500">
+        Press SPACE or TAP screen to Jump
     </div>
 
     <script>
@@ -91,86 +63,139 @@
         const gameOverElement = document.getElementById('gameOver');
         const finalScoreElement = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
+        const loadingMessage = document.getElementById('loadingMessage');
 
         // --- Game Constants ---
         const CANVAS_WIDTH = canvas.width;
         const CANVAS_HEIGHT = canvas.height;
-        const GROUND_Y = CANVAS_HEIGHT - 30; // Position of the ground line
-        const PLAYER_WIDTH = 20;
-        const PLAYER_HEIGHT = 30;
-        const PLAYER_X = 50; // Player's fixed horizontal position
+        const GROUND_Y = CANVAS_HEIGHT - 40; // Ground position adjusted for assets
         const GRAVITY = 0.6;
-        const JUMP_FORCE = -12;
-        const INITIAL_SPEED = 3;
-        const SPEED_INCREMENT = 0.001;
-        const MIN_OBSTACLE_SPAWN_INTERVAL = 50; // Minimum frames between obstacles
-        const MAX_OBSTACLE_SPAWN_INTERVAL = 120; // Maximum frames between obstacles
+        const JUMP_FORCE = -13; // Slightly stronger jump
+        const INITIAL_SPEED = 4; // Start a bit faster
+        const SPEED_INCREMENT = 0.0015;
+        const MIN_OBSTACLE_SPAWN_INTERVAL = 55;
+        const MAX_OBSTACLE_SPAWN_INTERVAL = 130;
+
+        // --- Assets (Base64 Encoded Images) ---
+        // Simple Pixel Dino (Running State) - approx 44x47px
+        const DINO_RUN_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAvCAYAAAClLvNpAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEJSURBVFhH7dhNCoMwEIRhL/kQvXjdjT6kt6irqKewGxsT4oJimZk5Hx+EBZL/9w8BQXg3CS+C8AMJL4LwAwnfQHgR3sA8XzXN3krvhL47c/aM+F7yLb7MPkm/rS3Cf7t/MC+A170Xwu/W/hj8N+L/4P/M/xl87fP+GvyXpNt8V8a/Bf+N6f+a6b/B/w//m+j/kv+P/h/8P+v+f/X/of/P+v+D/6/9/8n/h//f+P+b/0/8/+v/Z/0/8/0X/T/6/F/0/+/8H/b/4/1X/j/3/gf9/+f8p/9/4/yr/T/x/wf8H/v/P/l/w/xr/7/B/Gv+v8H8Z/w/x/yn/T/h/jf8//H8j/Ne9jX+s/wT/T+u/Qvgnxr/qPzF9ZnyF8HkIL4LwAwnfQHgRhB9IeBGEH0h4EYTfSfgRhD9J+BGE30k4EAQXYXgRhBdIeBGEF2F4EYTfSXgQhBdJeBCE30l4EIRXkPBGEF4l4U0QXkXhTdB+JuFNEH4m4U0QPkrhTZD+SOGNkP5I4Y2Q/kzhDZDeTOENEH5T4U0QflPhTRB+Q+FNEH5D4U0Q3kLhTRDeQuFNEN5C4U0Q3kXhTRDeReFNEP5f4U0Q/l/hTRD+L+FNEP5P4U0Q/k/hTRC+ReFNEP5F4U0Qvsr9A5JzQo8U5L8GAAAAAElFTkSuQmCC';
+
+        // Simple Pixel Cactus - approx 25x50px
+        const CACTUS_SRC_1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAyCAYAAAD/5nYsAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADJSURBVFhH7dixCcMwEAXQL+JR9OjpbtN+pL0k7UUtxVEEH4KEjo9/zsO8EFgS/2EDCF8Y/gDBDyH8AMIPIfwAwg8h/ADCDyH8AFLb0VvwKfx34b5+z+Bnq/r+xP8k+q72+1P/k+i7+T+Jf5L+n/x/kf4//H8j/X/8/yP9f/j/Rfr/4P8P6f+T/9+k/0/+v0n/H/x/kf4f/H+h/m/3/+D/t/s/8P83+z/w/zv7P/D/P/s/8P9P9v8H/3/S/4f/X6T/h/9fpP8P/n/y5g+h+4/t+wLhDxP+AMIPIfwAwg8h/ADC9wY/AL+F8AMIP4TwAQg/hPABCE9D+ACENyF8AEKbED4A4UwIH4BwEgQPhLcnBEE4U4IfQLgzwhcg3BnhCxAuBLkIAAAAABJRU5ErkJggg==';
+        // Add more cactus variations if desired
+        const CACTUS_SOURCES = [CACTUS_SRC_1];
+
+        // --- Asset Loading ---
+        let assetsLoaded = 0;
+        const totalAssets = 1 + CACTUS_SOURCES.length; // Dino + Cacti
+        const dinoImage = new Image();
+        const cactusImages = [];
+
+        function assetLoaded() {
+            assetsLoaded++;
+            if (assetsLoaded === totalAssets) {
+                loadingMessage.style.display = 'none'; // Hide loading message
+                // Set actual dimensions after loading
+                player.width = dinoImage.width * 0.8; // Scale slightly if needed
+                player.height = dinoImage.height * 0.8;
+                player.y = GROUND_Y - player.height; // Initial placement
+
+                startGame(); // Start the game only after all assets are loaded
+            }
+        }
+
+        dinoImage.onload = assetLoaded;
+        dinoImage.src = DINO_RUN_SRC;
+
+        CACTUS_SOURCES.forEach(src => {
+            const img = new Image();
+            img.onload = assetLoaded;
+            img.src = src;
+            cactusImages.push(img);
+        });
 
         // --- Game State Variables ---
-        let playerY;
-        let playerVelocityY;
-        let isJumping;
-        let obstacles = []; // Array to hold obstacle objects
+        let player; // Will be initialized in createPlayer
+        let obstacles = [];
         let gameSpeed;
         let score;
-        let highScore = localStorage.getItem('pixelRunHighScore') || 0; // Load high score from local storage
-        let frames; // Frame counter for timing obstacle spawns
+        let highScore = localStorage.getItem('pixelRunHighScoreEnhanced') || 0;
+        let frames;
         let nextObstacleSpawnFrame;
         let isGameOver;
         let animationFrameId;
 
-        // --- Player Object (Simplified) ---
-        const player = {
-            x: PLAYER_X,
-            y: GROUND_Y - PLAYER_HEIGHT,
-            width: PLAYER_WIDTH,
-            height: PLAYER_HEIGHT,
-            velocityY: 0,
-            isJumping: false,
+        // --- Player Object ---
+        function createPlayer() {
+             return {
+                x: 60, // Player's fixed horizontal position
+                y: GROUND_Y - 47, // Placeholder Y, updated on image load
+                width: 44, // Placeholder width
+                height: 47, // Placeholder height
+                velocityY: 0,
+                isJumping: false,
+                image: dinoImage, // Use the loaded image
 
-            draw: function() {
-                ctx.fillStyle = '#333'; // Dark grey color for the 'dino'
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-            },
+                draw: function() {
+                    if (this.image.complete && this.image.naturalHeight !== 0) { // Check if image is loaded
+                         ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                    } else {
+                         // Fallback: Draw a rectangle if image isn't ready (shouldn't happen after preloading)
+                         ctx.fillStyle = '#333';
+                         ctx.fillRect(this.x, this.y, this.width, this.height);
+                    }
+                },
 
-            update: function() {
-                // Apply gravity
-                if (this.y < GROUND_Y - this.height || this.velocityY < 0) {
-                    this.velocityY += GRAVITY;
-                    this.y += this.velocityY;
+                update: function() {
+                    if (this.y < GROUND_Y - this.height || this.velocityY < 0) {
+                        this.velocityY += GRAVITY;
+                        this.y += this.velocityY;
+                    }
+                    if (this.y > GROUND_Y - this.height) {
+                        this.y = GROUND_Y - this.height;
+                        this.velocityY = 0;
+                        this.isJumping = false;
+                    }
+                },
+
+                jump: function() {
+                    if (!this.isJumping && this.y >= GROUND_Y - this.height - 5) { // Allow jump slightly before landing
+                        this.velocityY = JUMP_FORCE;
+                        this.isJumping = true;
+                    }
                 }
+            };
+        }
 
-                // Prevent falling through the ground
-                if (this.y > GROUND_Y - this.height) {
-                    this.y = GROUND_Y - this.height;
-                    this.velocityY = 0;
-                    this.isJumping = false;
-                }
-            },
-
-            jump: function() {
-                if (!this.isJumping) {
-                    this.velocityY = JUMP_FORCE;
-                    this.isJumping = true;
-                    // Simple jump sound (optional, needs browser support)
-                    // playSound('jump');
-                }
-            }
-        };
-
-        // --- Obstacle Object (Simplified) ---
+        // --- Obstacle Object ---
         class Obstacle {
             constructor() {
-                this.width = 15 + Math.random() * 20; // Random width
-                this.height = 20 + Math.random() * 30; // Random height
+                const cactusIndex = Math.floor(Math.random() * cactusImages.length);
+                this.image = cactusImages[cactusIndex];
+                 // Wait for image to load to get dimensions, use placeholders initially
+                this.width = (this.image.complete && this.image.naturalWidth > 0) ? this.image.width * 0.9 : 25;
+                this.height = (this.image.complete && this.image.naturalHeight > 0) ? this.image.height * 0.9 : 50;
                 this.x = CANVAS_WIDTH;
                 this.y = GROUND_Y - this.height;
-                this.color = '#d9534f'; // Reddish color for obstacles
+
+                 // Refetch dimensions in case they weren't ready during construction (unlikely with preload)
+                 if (!this.image.complete || this.image.naturalWidth === 0) {
+                    this.image.onload = () => {
+                         this.width = this.image.width * 0.9;
+                         this.height = this.image.height * 0.9;
+                         this.y = GROUND_Y - this.height;
+                     }
+                 }
             }
 
             draw() {
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+                 if (this.image.complete && this.image.naturalHeight !== 0) {
+                     ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                 } else {
+                     // Fallback rectangle
+                     ctx.fillStyle = '#d9534f';
+                     ctx.fillRect(this.x, this.y, this.width, this.height);
+                 }
             }
 
             update() {
@@ -180,57 +205,47 @@
 
         // --- Game Loop ---
         function gameLoop() {
-            if (isGameOver) {
-                return; // Stop the loop if game over
-            }
+            if (isGameOver) return;
 
-            // 1. Clear Canvas
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // 2. Draw Ground
-            ctx.fillStyle = '#555';
-            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 2); // A simple line for the ground
+            // Draw Ground (simple line)
+            ctx.fillStyle = '#6b7280'; // Tailwind gray-500
+            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 4);
 
-            // 3. Update & Draw Player
             player.update();
             player.draw();
 
-            // 4. Handle Obstacles
             manageObstacles();
 
-            // 5. Check Collisions
             if (checkCollisions()) {
                 triggerGameOver();
-                return; // Exit loop immediately on game over
+                return;
             }
 
-            // 6. Update Score & Speed
             score++;
             gameSpeed += SPEED_INCREMENT;
             scoreElement.textContent = score;
 
-            // 7. Request Next Frame
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         // --- Obstacle Management ---
         function manageObstacles() {
-            // Spawn new obstacles
             frames++;
             if (frames >= nextObstacleSpawnFrame) {
-                obstacles.push(new Obstacle());
-                frames = 0;
-                // Set next spawn time randomly within range, adjusted by speed
-                const baseInterval = MIN_OBSTACLE_SPAWN_INTERVAL + Math.random() * (MAX_OBSTACLE_SPAWN_INTERVAL - MIN_OBSTACLE_SPAWN_INTERVAL);
-                nextObstacleSpawnFrame = Math.max(20, baseInterval - (gameSpeed * 5)); // Faster speed = shorter interval, with a minimum
+                // Ensure cactus image is loaded before creating obstacle (usually true due to preload)
+                 if (cactusImages.every(img => img.complete && img.naturalHeight !== 0)) {
+                    obstacles.push(new Obstacle());
+                    frames = 0;
+                    const baseInterval = MIN_OBSTACLE_SPAWN_INTERVAL + Math.random() * (MAX_OBSTACLE_SPAWN_INTERVAL - MIN_OBSTACLE_SPAWN_INTERVAL);
+                    nextObstacleSpawnFrame = Math.max(30, baseInterval - (gameSpeed * 4)); // Adjust spawn rate based on speed
+                 }
             }
 
-            // Update and draw existing obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].update();
                 obstacles[i].draw();
-
-                // Remove obstacles that are off-screen
                 if (obstacles[i].x + obstacles[i].width < 0) {
                     obstacles.splice(i, 1);
                 }
@@ -240,89 +255,98 @@
         // --- Collision Detection ---
         function checkCollisions() {
             for (const obstacle of obstacles) {
-                // Simple Axis-Aligned Bounding Box (AABB) collision check
+                 // Simple AABB collision check - adjust padding slightly for better feel
+                 const padding = 5; // Reduce hitbox slightly
                 if (
-                    player.x < obstacle.x + obstacle.width &&
-                    player.x + player.width > obstacle.x &&
-                    player.y < obstacle.y + obstacle.height &&
-                    player.y + player.height > obstacle.y
+                    player.x < obstacle.x + obstacle.width - padding &&
+                    player.x + player.width > obstacle.x + padding &&
+                    player.y < obstacle.y + obstacle.height - padding &&
+                    player.y + player.height > obstacle.y + padding
                 ) {
-                    return true; // Collision detected
+                    return true;
                 }
             }
-            return false; // No collision
+            return false;
         }
 
         // --- Game Over Handling ---
         function triggerGameOver() {
             isGameOver = true;
-            cancelAnimationFrame(animationFrameId); // Stop the game loop
-            gameOverElement.style.display = 'block';
+            cancelAnimationFrame(animationFrameId);
+            gameOverElement.classList.remove('hidden'); // Show game over screen
             finalScoreElement.textContent = `Your Score: ${score}`;
-
-            // Update High Score
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('pixelRunHighScore', highScore); // Save to local storage
+                localStorage.setItem('pixelRunHighScoreEnhanced', highScore);
                 highScoreElement.textContent = highScore;
             }
-            // Simple crash sound (optional)
-            // playSound('crash');
         }
 
         // --- Game Initialization / Restart ---
         function startGame() {
-            // Reset game state
+            player = createPlayer(); // Initialize player object
+            // Make sure player y is set correctly after image load handled it
             player.y = GROUND_Y - player.height;
             player.velocityY = 0;
             player.isJumping = false;
+
             obstacles = [];
             gameSpeed = INITIAL_SPEED;
             score = 0;
             frames = 0;
-            nextObstacleSpawnFrame = MAX_OBSTACLE_SPAWN_INTERVAL; // Initial spawn delay
+            nextObstacleSpawnFrame = MAX_OBSTACLE_SPAWN_INTERVAL;
             isGameOver = false;
 
-            // Update displays
             scoreElement.textContent = score;
             highScoreElement.textContent = highScore;
-            gameOverElement.style.display = 'none';
+            gameOverElement.classList.add('hidden'); // Hide game over screen
 
-            // Clear any previous animation frame request
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
 
-            // Start the game loop
-            animationFrameId = requestAnimationFrame(gameLoop);
+            // Small delay before starting to ensure everything is rendered once
+            setTimeout(() => {
+                 animationFrameId = requestAnimationFrame(gameLoop);
+            }, 50);
         }
 
         // --- Input Handling ---
         function handleInput(event) {
-            if (!isGameOver) {
-                // Check for Spacebar press or if the event is a touch/click
-                if (event.code === 'Space' || event.type === 'touchstart' || event.type === 'mousedown') {
-                     event.preventDefault(); // Prevent spacebar scrolling or unwanted touch behavior
-                    player.jump();
+             // If game hasn't started (assets loading), don't process jump
+             if (!player || assetsLoaded < totalAssets) return;
+
+            if (isGameOver) {
+                // Allow restart via space/tap only if game over screen is visible
+                if ((event.code === 'Space' || event.type === 'touchstart' || event.type === 'mousedown') && !gameOverElement.classList.contains('hidden')) {
+                    // Check if the click/tap was on the button itself
+                    if (event.target !== restartButton) {
+                         event.preventDefault();
+                         startGame();
+                    }
                 }
+                return; // Don't jump if game is over
+            }
+
+            // Handle jump
+            if (event.code === 'Space' || event.type === 'touchstart' || event.type === 'mousedown') {
+                event.preventDefault(); // Prevent default behaviors
+                player.jump();
             }
         }
 
         // --- Event Listeners ---
         document.addEventListener('keydown', handleInput);
-        canvas.addEventListener('touchstart', handleInput); // For mobile taps
-        canvas.addEventListener('mousedown', handleInput);  // For mouse clicks on canvas
-        restartButton.addEventListener('click', startGame);
+        document.addEventListener('touchstart', handleInput); // Use document for wider tap area
+        document.addEventListener('mousedown', handleInput);   // Use document for wider click area
+        restartButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent the document click listener from firing too
+            startGame();
+        });
 
-        // --- (Optional) Simple Sound Player ---
-        // function playSound(type) {
-        //     // Basic implementation using Web Audio API if needed
-        //     // Example: Create an oscillator for jump/crash sounds
-        //     // This adds complexity, so it's omitted for simplicity here.
-        // }
-
-        // --- Initial Game Start ---
-        startGame();
+        // --- Initial Setup ---
+        highScoreElement.textContent = highScore; // Display high score immediately
+        // The game will be started by the asset loader callback `assetLoaded()`
 
     </script>
 
