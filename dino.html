@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Run: Basic Dash</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: 'Courier New', Courier, monospace;
+            touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #fff;
+            /* Simple pixelated scaling if needed, but might blur */
+            /* image-rendering: pixelated; */
+            /* image-rendering: -moz-crisp-edges; */
+            /* image-rendering: crisp-edges; */
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        #controls {
+            margin-top: 15px;
+            color: #555;
+            font-size: 0.9em;
+        }
+        #gameOver {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: #d9534f;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none; /* Hidden by default */
+            text-align: center;
+            border: 2px solid #d9534f;
+        }
+         #gameOver button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 0.8em;
+            cursor: pointer;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+         }
+         #gameOver button:hover {
+            background-color: #4cae4c;
+         }
+    </style>
+</head>
+<body>
+
+    <div id="info">
+        Score: <span id="score">0</span> | High Score: <span id="highScore">0</span>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="200"></canvas>
+
+    <div id="controls">
+        Press SPACE or TAP to Jump
+    </div>
+
+    <div id="gameOver">
+        Game Over!
+        <br>
+        <span id="finalScore"></span>
+        <br>
+        <button id="restartButton">Restart</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+
+        // --- Game Constants ---
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height;
+        const GROUND_Y = CANVAS_HEIGHT - 30; // Position of the ground line
+        const PLAYER_WIDTH = 20;
+        const PLAYER_HEIGHT = 30;
+        const PLAYER_X = 50; // Player's fixed horizontal position
+        const GRAVITY = 0.6;
+        const JUMP_FORCE = -12;
+        const INITIAL_SPEED = 3;
+        const SPEED_INCREMENT = 0.001;
+        const MIN_OBSTACLE_SPAWN_INTERVAL = 50; // Minimum frames between obstacles
+        const MAX_OBSTACLE_SPAWN_INTERVAL = 120; // Maximum frames between obstacles
+
+        // --- Game State Variables ---
+        let playerY;
+        let playerVelocityY;
+        let isJumping;
+        let obstacles = []; // Array to hold obstacle objects
+        let gameSpeed;
+        let score;
+        let highScore = localStorage.getItem('pixelRunHighScore') || 0; // Load high score from local storage
+        let frames; // Frame counter for timing obstacle spawns
+        let nextObstacleSpawnFrame;
+        let isGameOver;
+        let animationFrameId;
+
+        // --- Player Object (Simplified) ---
+        const player = {
+            x: PLAYER_X,
+            y: GROUND_Y - PLAYER_HEIGHT,
+            width: PLAYER_WIDTH,
+            height: PLAYER_HEIGHT,
+            velocityY: 0,
+            isJumping: false,
+
+            draw: function() {
+                ctx.fillStyle = '#333'; // Dark grey color for the 'dino'
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            },
+
+            update: function() {
+                // Apply gravity
+                if (this.y < GROUND_Y - this.height || this.velocityY < 0) {
+                    this.velocityY += GRAVITY;
+                    this.y += this.velocityY;
+                }
+
+                // Prevent falling through the ground
+                if (this.y > GROUND_Y - this.height) {
+                    this.y = GROUND_Y - this.height;
+                    this.velocityY = 0;
+                    this.isJumping = false;
+                }
+            },
+
+            jump: function() {
+                if (!this.isJumping) {
+                    this.velocityY = JUMP_FORCE;
+                    this.isJumping = true;
+                    // Simple jump sound (optional, needs browser support)
+                    // playSound('jump');
+                }
+            }
+        };
+
+        // --- Obstacle Object (Simplified) ---
+        class Obstacle {
+            constructor() {
+                this.width = 15 + Math.random() * 20; // Random width
+                this.height = 20 + Math.random() * 30; // Random height
+                this.x = CANVAS_WIDTH;
+                this.y = GROUND_Y - this.height;
+                this.color = '#d9534f'; // Reddish color for obstacles
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+
+            update() {
+                this.x -= gameSpeed;
+            }
+        }
+
+        // --- Game Loop ---
+        function gameLoop() {
+            if (isGameOver) {
+                return; // Stop the loop if game over
+            }
+
+            // 1. Clear Canvas
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // 2. Draw Ground
+            ctx.fillStyle = '#555';
+            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 2); // A simple line for the ground
+
+            // 3. Update & Draw Player
+            player.update();
+            player.draw();
+
+            // 4. Handle Obstacles
+            manageObstacles();
+
+            // 5. Check Collisions
+            if (checkCollisions()) {
+                triggerGameOver();
+                return; // Exit loop immediately on game over
+            }
+
+            // 6. Update Score & Speed
+            score++;
+            gameSpeed += SPEED_INCREMENT;
+            scoreElement.textContent = score;
+
+            // 7. Request Next Frame
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Obstacle Management ---
+        function manageObstacles() {
+            // Spawn new obstacles
+            frames++;
+            if (frames >= nextObstacleSpawnFrame) {
+                obstacles.push(new Obstacle());
+                frames = 0;
+                // Set next spawn time randomly within range, adjusted by speed
+                const baseInterval = MIN_OBSTACLE_SPAWN_INTERVAL + Math.random() * (MAX_OBSTACLE_SPAWN_INTERVAL - MIN_OBSTACLE_SPAWN_INTERVAL);
+                nextObstacleSpawnFrame = Math.max(20, baseInterval - (gameSpeed * 5)); // Faster speed = shorter interval, with a minimum
+            }
+
+            // Update and draw existing obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].update();
+                obstacles[i].draw();
+
+                // Remove obstacles that are off-screen
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        // --- Collision Detection ---
+        function checkCollisions() {
+            for (const obstacle of obstacles) {
+                // Simple Axis-Aligned Bounding Box (AABB) collision check
+                if (
+                    player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y
+                ) {
+                    return true; // Collision detected
+                }
+            }
+            return false; // No collision
+        }
+
+        // --- Game Over Handling ---
+        function triggerGameOver() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrameId); // Stop the game loop
+            gameOverElement.style.display = 'block';
+            finalScoreElement.textContent = `Your Score: ${score}`;
+
+            // Update High Score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('pixelRunHighScore', highScore); // Save to local storage
+                highScoreElement.textContent = highScore;
+            }
+            // Simple crash sound (optional)
+            // playSound('crash');
+        }
+
+        // --- Game Initialization / Restart ---
+        function startGame() {
+            // Reset game state
+            player.y = GROUND_Y - player.height;
+            player.velocityY = 0;
+            player.isJumping = false;
+            obstacles = [];
+            gameSpeed = INITIAL_SPEED;
+            score = 0;
+            frames = 0;
+            nextObstacleSpawnFrame = MAX_OBSTACLE_SPAWN_INTERVAL; // Initial spawn delay
+            isGameOver = false;
+
+            // Update displays
+            scoreElement.textContent = score;
+            highScoreElement.textContent = highScore;
+            gameOverElement.style.display = 'none';
+
+            // Clear any previous animation frame request
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            // Start the game loop
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Input Handling ---
+        function handleInput(event) {
+            if (!isGameOver) {
+                // Check for Spacebar press or if the event is a touch/click
+                if (event.code === 'Space' || event.type === 'touchstart' || event.type === 'mousedown') {
+                     event.preventDefault(); // Prevent spacebar scrolling or unwanted touch behavior
+                    player.jump();
+                }
+            }
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('keydown', handleInput);
+        canvas.addEventListener('touchstart', handleInput); // For mobile taps
+        canvas.addEventListener('mousedown', handleInput);  // For mouse clicks on canvas
+        restartButton.addEventListener('click', startGame);
+
+        // --- (Optional) Simple Sound Player ---
+        // function playSound(type) {
+        //     // Basic implementation using Web Audio API if needed
+        //     // Example: Create an oscillator for jump/crash sounds
+        //     // This adds complexity, so it's omitted for simplicity here.
+        // }
+
+        // --- Initial Game Start ---
+        startGame();
+
+    </script>
+
+</body>
+</html>
