@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Basic 3D Flyer - Mobile</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* Sky Blue */
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        canvas {
+            display: block;
+        }
+        #info { /* Instructions/Debug Info */
+            position: fixed;
+            top: 5px;
+            left: 5px;
+            color: white;
+            font-size: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 3px 6px;
+            border-radius: 3px;
+            z-index: 10;
+        }
+        #ui-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none; /* Allow clicks/touches to pass through container */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #start-button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            pointer-events: auto; /* Enable pointer events for the button */
+            transition: background-color 0.2s;
+        }
+        #start-button:hover, #start-button:active {
+            background-color: #45a049;
+        }
+
+        #controls-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 35%; /* Adjust height as needed */
+            display: none; /* Hidden initially */
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: auto; /* Enable pointer events for controls */
+            z-index: 10;
+            background: linear-gradient(to top, rgba(0,0,0,0.3), rgba(0,0,0,0.0)); /* Subtle gradient */
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; /* Space between buttons */
+        }
+        .control-group.horizontal {
+             flex-direction: row;
+             gap: 25px;
+        }
+
+        .control-button {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%; /* Circle buttons */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            transition: background-color 0.1s;
+        }
+        .control-button:active {
+            background-color: rgba(255, 255, 255, 0.6); /* Feedback on press */
+        }
+        .control-button.throttle {
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+        }
+
+        /* Arrows using text characters or borders */
+        .arrow-up::before { content: '▲'; }
+        .arrow-down::before { content: '▼'; }
+        .arrow-left::before { content: '◀'; }
+        .arrow-right::before { content: '▶'; }
+        .plus::before { content: '+'; }
+        .minus::before { content: '-'; }
+
+    </style>
+</head>
+<body>
+    <div id="info">
+        W/S: Pitch | A/D: Roll | Q/E: Speed
+    </div>
+
+    <div id="ui-container">
+        <button id="start-button">Start Flight</button>
+
+        <div id="controls-overlay">
+            <div class="control-group">
+                <button class="control-button arrow-up" id="pitch-down"></button> <div class="control-group horizontal">
+                    <button class="control-button arrow-left" id="roll-left"></button>
+                    <button class="control-button arrow-right" id="roll-right"></button>
+                </div>
+                <button class="control-button arrow-down" id="pitch-up"></button> </div>
+
+            <div class="control-group">
+                 <button class="control-button throttle plus" id="throttle-up"></button>
+                 <button class="control-button throttle minus" id="throttle-down"></button>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.163.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        let scene, camera, renderer, clock;
+        let aircraft;
+        let ground;
+        let gameStarted = false;
+
+        const controlState = {
+            pitchUp: false, pitchDown: false,
+            rollLeft: false, rollRight: false,
+            throttleUp: false, throttleDown: false
+        };
+        let speed = 0.5;
+        const maxSpeed = 2.0;
+        const minSpeed = 0.1;
+        const acceleration = 0.5;
+        const rotationSpeed = 1.0;
+
+        // --- DOM Elements ---
+        const startButton = document.getElementById('start-button');
+        const controlsOverlay = document.getElementById('controls-overlay');
+        const infoElement = document.getElementById('info'); // Reference info div
+
+        // --- Control Buttons ---
+        const pitchUpButton = document.getElementById('pitch-up');
+        const pitchDownButton = document.getElementById('pitch-down');
+        const rollLeftButton = document.getElementById('roll-left');
+        const rollRightButton = document.getElementById('roll-right');
+        const throttleUpButton = document.getElementById('throttle-up');
+        const throttleDownButton = document.getElementById('throttle-down');
+
+
+        function init() {
+            // --- Basic Setup ---
+            scene = new THREE.Scene();
+            // Adjust camera FOV slightly for mobile? Maybe 65-70
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Consider disabling antialias for mobile performance if needed
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x87CEEB);
+            document.body.appendChild(renderer.domElement); // Append canvas to body
+            clock = new THREE.Clock();
+
+            // --- Lighting ---
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Slightly brighter ambient
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            // --- Ground ---
+            const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22, side: THREE.DoubleSide });
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = 0;
+            scene.add(ground);
+
+            // --- Aircraft (Procedural) ---
+             aircraft = new THREE.Group();
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xAAAAAA });
+            const wingMaterial = new THREE.MeshStandardMaterial({ color: 0xCCCCCC });
+
+            const bodyGeometry = new THREE.BoxGeometry(0.5, 0.3, 1.5);
+            aircraft.add(new THREE.Mesh(bodyGeometry, bodyMaterial));
+            const wingGeometry = new THREE.BoxGeometry(2.5, 0.1, 0.4);
+            const wingMesh = new THREE.Mesh(wingGeometry, wingMaterial);
+            wingMesh.position.set(0, 0.05, -0.2);
+            aircraft.add(wingMesh);
+            const tailWingGeometry = new THREE.BoxGeometry(0.8, 0.05, 0.3);
+            const tailWingMesh = new THREE.Mesh(tailWingGeometry, wingMaterial);
+            tailWingMesh.position.set(0, 0.1, 0.65);
+            aircraft.add(tailWingMesh);
+            const tailFinGeometry = new THREE.BoxGeometry(0.1, 0.4, 0.3);
+            const tailFinMesh = new THREE.Mesh(tailFinGeometry, bodyMaterial);
+            tailFinMesh.position.set(0, 0.25, 0.65);
+            aircraft.add(tailFinMesh);
+
+            aircraft.position.set(0, 5, 0); // Start higher
+            scene.add(aircraft);
+
+            // Initial Camera position - will be adjusted in animate
+            camera.position.set(0, 7, 5);
+            camera.lookAt(aircraft.position);
+
+            // --- Event Listeners (Keep for Desktop Testing) ---
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('keydown', onKeyDown, false);
+            document.addEventListener('keyup', onKeyUp, false);
+
+            console.log("Three.js Initialized");
+        }
+
+        function startGameFlow() {
+            console.log("Start button clicked");
+            // --- Request Fullscreen ---
+            const elem = document.documentElement; // Request fullscreen for the whole page
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen mode (webkit): ${err.message} (${err.name})`);
+                });
+            } else if (elem.mozRequestFullScreen) { /* Firefox */
+                elem.mozRequestFullScreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen mode (moz): ${err.message} (${err.name})`);
+                });
+            } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                elem.msRequestFullscreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen mode (ms): ${err.message} (${err.name})`);
+                });
+            }
+
+            // --- Attempt Orientation Lock (might fail silently or require permissions) ---
+             try {
+                 if (screen.orientation && screen.orientation.lock) {
+                     screen.orientation.lock('landscape-primary').then(() => {
+                         console.log('Orientation locked to landscape.');
+                     }).catch(err => {
+                         console.warn(`Could not lock orientation: ${err.message}`);
+                     });
+                 } else if (screen.lockOrientation) { // Older API
+                     screen.lockOrientation('landscape-primary');
+                 } else if (screen.mozLockOrientation) { // Firefox
+                     screen.mozLockOrientation('landscape-primary');
+                 } else if (screen.msLockOrientation) { // IE/Edge
+                     screen.msLockOrientation('landscape-primary');
+                 }
+             } catch (err) {
+                 console.warn(`Error during screen orientation lock: ${err.message}`);
+             }
+
+
+            // --- Initialize and Start Game ---
+            if (!gameStarted) {
+                init(); // Initialize Three.js scene etc.
+                setupTouchControls(); // Setup touch listeners
+                startButton.style.display = 'none'; // Hide start button
+                controlsOverlay.style.display = 'flex'; // Show controls
+                infoElement.style.display = 'none'; // Hide keyboard info on mobile
+                gameStarted = true;
+                animate(); // Start the animation loop
+                console.log("Game starting animation loop.");
+            }
+        }
+
+        function setupTouchControls() {
+            // Helper to add listeners
+            const addTouchListeners = (element, startFunc, endFunc) => {
+                element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); }, { passive: false });
+                element.addEventListener('touchend', (e) => { e.preventDefault(); endFunc(); }, { passive: false });
+                element.addEventListener('touchcancel', (e) => { e.preventDefault(); endFunc(); }, { passive: false }); // Handle cancelled touches
+            };
+
+            addTouchListeners(pitchUpButton, () => controlState.pitchUp = true, () => controlState.pitchUp = false);
+            addTouchListeners(pitchDownButton, () => controlState.pitchDown = true, () => controlState.pitchDown = false);
+            addTouchListeners(rollLeftButton, () => controlState.rollLeft = true, () => controlState.rollLeft = false);
+            addTouchListeners(rollRightButton, () => controlState.rollRight = true, () => controlState.rollRight = false);
+            addTouchListeners(throttleUpButton, () => controlState.throttleUp = true, () => controlState.throttleUp = false);
+            addTouchListeners(throttleDownButton, () => controlState.throttleDown = true, () => controlState.throttleDown = false);
+
+            console.log("Touch controls set up.");
+        }
+
+
+        function onWindowResize() {
+             if (!camera || !renderer) return; // Don't run if init hasn't happened
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Keep keyboard controls for testing
+        function onKeyDown(event) {
+            switch (event.key.toUpperCase()) {
+                case 'W': controlState.pitchDown = true; break;
+                case 'S': controlState.pitchUp = true; break;
+                case 'A': controlState.rollLeft = true; break;
+                case 'D': controlState.rollRight = true; break;
+                case 'E': controlState.throttleUp = true; break;
+                case 'Q': controlState.throttleDown = true; break;
+            }
+        }
+        function onKeyUp(event) {
+            switch (event.key.toUpperCase()) {
+                case 'W': controlState.pitchDown = false; break;
+                case 'S': controlState.pitchUp = false; break;
+                case 'A': controlState.rollLeft = false; break;
+                case 'D': controlState.rollRight = false; break;
+                case 'E': controlState.throttleUp = false; break;
+                case 'Q': controlState.throttleDown = false; break;
+            }
+        }
+
+        function updateAircraft(deltaTime) {
+            // Update Speed
+            if (controlState.throttleUp) speed += acceleration * deltaTime;
+            if (controlState.throttleDown) speed -= acceleration * deltaTime;
+            speed = Math.max(minSpeed, Math.min(maxSpeed, speed));
+
+            // Update Rotation
+            const rotSpeed = rotationSpeed * deltaTime;
+            if (controlState.pitchUp) aircraft.rotateX(rotSpeed);
+            if (controlState.pitchDown) aircraft.rotateX(-rotSpeed);
+            if (controlState.rollLeft) aircraft.rotateZ(rotSpeed);
+            if (controlState.rollRight) aircraft.rotateZ(-rotSpeed);
+
+            // Update Position
+            const forward = new THREE.Vector3(0, 0, -1);
+            forward.applyQuaternion(aircraft.quaternion);
+            forward.multiplyScalar(speed * 10 * deltaTime); // Adjust multiplier for feel
+            aircraft.position.add(forward);
+
+            // Altitude Clamp
+            if (aircraft.position.y < 0.5) {
+                 aircraft.position.y = 0.5;
+                 // Could zero out vertical velocity component if simulating gravity later
+            }
+        }
+
+        function updateCamera(deltaTime) {
+             const idealOffset = new THREE.Vector3(0, 1.5, 4.0);
+             idealOffset.applyQuaternion(aircraft.quaternion);
+             idealOffset.add(aircraft.position);
+
+             const lookAtPosition = new THREE.Vector3().copy(aircraft.position);
+             lookAtPosition.y += 0.5;
+
+             // Use faster lerp for more responsive camera on mobile? Adjust smoothness.
+             const smoothness = 4.0 * deltaTime; // Frame-rate independent lerp factor
+             camera.position.lerp(idealOffset, smoothness);
+             camera.lookAt(lookAtPosition);
+        }
+
+
+        function animate() {
+             if (!gameStarted) return; // Should not happen if called correctly, but safe check
+            requestAnimationFrame(animate);
+
+            const deltaTime = clock.getDelta();
+
+            updateAircraft(deltaTime);
+            updateCamera(deltaTime);
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Event Listener for Start Button ---
+        startButton.addEventListener('click', startGameFlow);
+        // Add touchstart as well for mobile responsiveness
+        startButton.addEventListener('touchstart', (e) => {
+             e.preventDefault(); // Prevent potential double event or zooming
+             startGameFlow();
+        }, { passive: false });
+
+        // --- Initial setup ---
+        // Don't call init() or animate() here, wait for the start button.
+        console.log("Page loaded. Waiting for Start button.");
+
+    </script>
+</body>
+</html>
