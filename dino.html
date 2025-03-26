@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Run: Enhanced Dash</title>
+    <title>Pixel Run: SVG Dash</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles if needed, or to override Tailwind defaults */
         body {
             font-family: 'Courier New', Courier, monospace;
-            overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
-            touch-action: manipulation; /* Improve touch responsiveness */
+            overscroll-behavior-y: contain;
+            touch-action: manipulation;
         }
         canvas {
-            /* Ensure crisp pixels when scaling */
+            /* image-rendering helps keep pixels sharp if SVGs are simple/blocky */
             image-rendering: pixelated;
             image-rendering: -moz-crisp-edges;
             image-rendering: crisp-edges;
-            background-color: #ffffff; /* Canvas background */
+            background-color: #ffffff;
         }
-        /* Style for the loading message */
         #loadingMessage {
             position: absolute;
             top: 50%;
@@ -28,12 +26,16 @@
             font-size: 1.5em;
             color: #333;
         }
+        /* Ensure button clicks work reliably on touch devices */
+        #restartButton {
+             cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-3xl text-center mb-4">
-        <h1 class="text-2xl font-bold text-gray-700 mb-2">Pixel Run: Enhanced Dash</h1>
+        <h1 class="text-2xl font-bold text-gray-700 mb-2">Pixel Run: SVG Dash</h1>
         <div id="info" class="text-lg font-semibold text-gray-600">
             Score: <span id="score" class="font-bold text-blue-600">0</span> | High Score: <span id="highScore" class="font-bold text-green-600">0</span>
         </div>
@@ -56,6 +58,7 @@
     </div>
 
     <script>
+        // --- DOM Elements ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
@@ -68,58 +71,84 @@
         // --- Game Constants ---
         const CANVAS_WIDTH = canvas.width;
         const CANVAS_HEIGHT = canvas.height;
-        const GROUND_Y = CANVAS_HEIGHT - 40; // Ground position adjusted for assets
+        const GROUND_Y = CANVAS_HEIGHT - 40;
         const GRAVITY = 0.6;
-        const JUMP_FORCE = -13; // Slightly stronger jump
-        const INITIAL_SPEED = 4; // Start a bit faster
+        const JUMP_FORCE = -13;
+        const INITIAL_SPEED = 4;
         const SPEED_INCREMENT = 0.0015;
         const MIN_OBSTACLE_SPAWN_INTERVAL = 55;
         const MAX_OBSTACLE_SPAWN_INTERVAL = 130;
 
-        // --- Assets (Base64 Encoded Images) ---
-        // Simple Pixel Dino (Running State) - approx 44x47px
-        const DINO_RUN_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAvCAYAAAClLvNpAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEJSURBVFhH7dhNCoMwEIRhL/kQvXjdjT6kt6irqKewGxsT4oJimZk5Hx+EBZL/9w8BQXg3CS+C8AMJL4LwAwnfQHgR3sA8XzXN3krvhL47c/aM+F7yLb7MPkm/rS3Cf7t/MC+A170Xwu/W/hj8N+L/4P/M/xl87fP+GvyXpNt8V8a/Bf+N6f+a6b/B/w//m+j/kv+P/h/8P+v+f/X/of/P+v+D/6/9/8n/h//f+P+b/0/8/+v/Z/0/8/0X/T/6/F/0/+/8H/b/4/1X/j/3/gf9/+f8p/9/4/yr/T/x/wf8H/v/P/l/w/xr/7/B/Gv+v8H8Z/w/x/yn/T/h/jf8//H8j/Ne9jX+s/wT/T+u/Qvgnxr/qPzF9ZnyF8HkIL4LwAwnfQHgRhB9IeBGEH0h4EYTfSfgRhD9J+BGE30k4EAQXYXgRhBdIeBGEF2F4EYTfSXgQhBdJeBCE30l4EIRXkPBGEF4l4U0QXkXhTdB+JuFNEH4m4U0QPkrhTZD+SOGNkP5I4Y2Q/kzhDZDeTOENEH5T4U0QflPhTRB+Q+FNEH5D4U0Q3kLhTRDeQuFNEN5C4U0Q3kXhTRDeReFNEP5f4U0Q/l/hTRD+L+FNEP5P4U0Q/k/hTRC+ReFNEP5F4U0Qvsr9A5JzQo8U5L8GAAAAAElFTkSuQmCC';
+        // --- Define drawing dimensions for SVGs ---
+        const PLAYER_DRAW_WIDTH = 40;
+        const PLAYER_DRAW_HEIGHT = 43;
+        const CACTUS_DRAW_WIDTH = 23; // Width for the specific SVG below
+        const CACTUS_DRAW_HEIGHT = 46; // Height for the specific SVG below
 
-        // Simple Pixel Cactus - approx 25x50px
-        const CACTUS_SRC_1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAyCAYAAAD/5nYsAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADJSURBVFhH7dixCcMwEAXQL+JR9OjpbtN+pL0k7UUtxVEEH4KEjo9/zsO8EFgS/2EDCF8Y/gDBDyH8AMIPIfwAwg8h/ADCDyH8AFLb0VvwKfx34b5+z+Bnq/r+xP8k+q72+1P/k+i7+T+Jf5L+n/x/kf4//H8j/X/8/yP9f/j/Rfr/4P8P6f+T/9+k/0/+v0n/H/x/kf4f/H+h/m/3/+D/t/s/8P83+z/w/zv7P/D/P/s/8P9P9v8H/3/S/4f/X6T/h/9fpP8P/n/y5g+h+4/t+wLhDxP+AMIPIfwAwg8h/ADC9wY/AL+F8AMIP4TwAQg/hPABCE9D+ACENyF8AEKbED4A4UwIH4BwEgQPhLcnBEE4U4IfQLgzwhcg3BnhCxAuBLkIAAAAABJRU5ErkJggg==';
-        // Add more cactus variations if desired
-        const CACTUS_SOURCES = [CACTUS_SRC_1];
+        // --- Assets (SVG Strings) ---
+        // Simple SVG Dino - viewBox defines coordinate system, width/height are suggested render size
+        const DINO_SVG_STRING = `<svg viewBox="0 0 40 43" xmlns="http://www.w3.org/2000/svg" fill="#333">
+            <rect x="1" y="0" width="18" height="10" rx="2"/>
+            <rect x="19" y="3" width="5" height="7" rx="1"/>
+            <rect x="10" y="10" width="25" height="15" rx="2"/>
+            <rect x="35" y="12" width="5" height="10" rx="2"/>
+            <rect x="12" y="25" width="8" height="18" rx="2"/>
+            <rect x="25" y="25" width="8" height="18" rx="2"/>
+            </svg>`;
+
+        // Simple SVG Cactus - Using paths for a slightly more organic look
+        const CACTUS_SVG_STRING_1 = `<svg viewBox="0 0 23 46" xmlns="http://www.w3.org/2000/svg" fill="#287d3c"> <rect x="7" y="0" width="9" height="46" rx="3"/>
+            <rect x="0" y="10" width="12" height="7" rx="3"/>
+            <rect x="11" y="22" width="12" height="7" rx="3"/>
+            </svg>`;
+
+        // --- Create Data URIs ---
+        // Use encodeURIComponent for robustness, though simple SVGs might work without it.
+        const DINO_SRC = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(DINO_SVG_STRING);
+        const CACTUS_SOURCES_SVG = [
+            'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(CACTUS_SVG_STRING_1)
+            // Add more cactus SVG strings and URIs here if desired
+        ];
 
         // --- Asset Loading ---
         let assetsLoaded = 0;
-        const totalAssets = 1 + CACTUS_SOURCES.length; // Dino + Cacti
+        const totalAssets = 1 + CACTUS_SOURCES_SVG.length; // Dino + Cacti SVGs
         const dinoImage = new Image();
         const cactusImages = [];
+        let gameReady = false; // Flag to indicate if assets are loaded
 
-        function assetLoaded() {
+        function assetLoaded(assetName) {
             assetsLoaded++;
+            console.log(`Asset loaded: ${assetName} (${assetsLoaded}/${totalAssets})`);
             if (assetsLoaded === totalAssets) {
-                loadingMessage.style.display = 'none'; // Hide loading message
-                // Set actual dimensions after loading
-                player.width = dinoImage.width * 0.8; // Scale slightly if needed
-                player.height = dinoImage.height * 0.8;
-                player.y = GROUND_Y - player.height; // Initial placement
-
-                startGame(); // Start the game only after all assets are loaded
+                console.log("All assets loaded. Starting game...");
+                gameReady = true;
+                loadingMessage.style.display = 'none';
+                // Dimensions are now fixed constants, no need to read from image here
+                startGame();
             }
         }
 
-        dinoImage.onload = assetLoaded;
-        dinoImage.src = DINO_RUN_SRC;
+        // --- Load Images from SVG Data URIs ---
+        console.log("Initiating asset loading...");
+        dinoImage.onload = () => assetLoaded('Dino');
+        dinoImage.onerror = () => console.error("Error loading Dino SVG");
+        dinoImage.src = DINO_SRC;
 
-        CACTUS_SOURCES.forEach(src => {
+        CACTUS_SOURCES_SVG.forEach((src, index) => {
             const img = new Image();
-            img.onload = assetLoaded;
+            img.onload = () => assetLoaded(`Cactus ${index + 1}`);
+            img.onerror = () => console.error(`Error loading Cactus ${index + 1} SVG`);
             img.src = src;
             cactusImages.push(img);
         });
 
         // --- Game State Variables ---
-        let player; // Will be initialized in createPlayer
+        let player;
         let obstacles = [];
         let gameSpeed;
         let score;
-        let highScore = localStorage.getItem('pixelRunHighScoreEnhanced') || 0;
+        let highScore = localStorage.getItem('pixelRunHighScoreSVG') || 0;
         let frames;
         let nextObstacleSpawnFrame;
         let isGameOver;
@@ -128,29 +157,32 @@
         // --- Player Object ---
         function createPlayer() {
              return {
-                x: 60, // Player's fixed horizontal position
-                y: GROUND_Y - 47, // Placeholder Y, updated on image load
-                width: 44, // Placeholder width
-                height: 47, // Placeholder height
+                x: 60,
+                y: GROUND_Y - PLAYER_DRAW_HEIGHT, // Use fixed height
+                width: PLAYER_DRAW_WIDTH,         // Use fixed width
+                height: PLAYER_DRAW_HEIGHT,       // Use fixed height
                 velocityY: 0,
                 isJumping: false,
-                image: dinoImage, // Use the loaded image
+                image: dinoImage,
 
                 draw: function() {
-                    if (this.image.complete && this.image.naturalHeight !== 0) { // Check if image is loaded
+                    // Check image.complete as a fallback, though onload should handle readiness
+                    if (this.image.complete && this.image.naturalHeight !== 0) {
                          ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-                    } else {
-                         // Fallback: Draw a rectangle if image isn't ready (shouldn't happen after preloading)
+                    } else if (gameReady) { // Only draw fallback if game has loaded but image somehow failed
+                         console.warn("Dino image not ready, drawing fallback rect.");
                          ctx.fillStyle = '#333';
                          ctx.fillRect(this.x, this.y, this.width, this.height);
                     }
                 },
 
                 update: function() {
+                    // Apply gravity
                     if (this.y < GROUND_Y - this.height || this.velocityY < 0) {
                         this.velocityY += GRAVITY;
                         this.y += this.velocityY;
                     }
+                    // Prevent falling through ground
                     if (this.y > GROUND_Y - this.height) {
                         this.y = GROUND_Y - this.height;
                         this.velocityY = 0;
@@ -159,7 +191,8 @@
                 },
 
                 jump: function() {
-                    if (!this.isJumping && this.y >= GROUND_Y - this.height - 5) { // Allow jump slightly before landing
+                    // Allow jump slightly before landing
+                    if (!this.isJumping && this.y >= GROUND_Y - this.height - 5) {
                         this.velocityY = JUMP_FORCE;
                         this.isJumping = true;
                     }
@@ -172,27 +205,18 @@
             constructor() {
                 const cactusIndex = Math.floor(Math.random() * cactusImages.length);
                 this.image = cactusImages[cactusIndex];
-                 // Wait for image to load to get dimensions, use placeholders initially
-                this.width = (this.image.complete && this.image.naturalWidth > 0) ? this.image.width * 0.9 : 25;
-                this.height = (this.image.complete && this.image.naturalHeight > 0) ? this.image.height * 0.9 : 50;
+                // Use fixed dimensions defined above
+                this.width = CACTUS_DRAW_WIDTH;
+                this.height = CACTUS_DRAW_HEIGHT;
                 this.x = CANVAS_WIDTH;
-                this.y = GROUND_Y - this.height;
-
-                 // Refetch dimensions in case they weren't ready during construction (unlikely with preload)
-                 if (!this.image.complete || this.image.naturalWidth === 0) {
-                    this.image.onload = () => {
-                         this.width = this.image.width * 0.9;
-                         this.height = this.image.height * 0.9;
-                         this.y = GROUND_Y - this.height;
-                     }
-                 }
+                this.y = GROUND_Y - this.height; // Position based on fixed height
             }
 
             draw() {
                  if (this.image.complete && this.image.naturalHeight !== 0) {
                      ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-                 } else {
-                     // Fallback rectangle
+                 } else if (gameReady) {
+                     console.warn("Cactus image not ready, drawing fallback rect.");
                      ctx.fillStyle = '#d9534f';
                      ctx.fillRect(this.x, this.y, this.width, this.height);
                  }
@@ -205,11 +229,11 @@
 
         // --- Game Loop ---
         function gameLoop() {
-            if (isGameOver) return;
+            if (isGameOver || !gameReady) return; // Don't run if game over or not ready
 
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Draw Ground (simple line)
+            // Draw Ground
             ctx.fillStyle = '#6b7280'; // Tailwind gray-500
             ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 4);
 
@@ -234,15 +258,14 @@
         function manageObstacles() {
             frames++;
             if (frames >= nextObstacleSpawnFrame) {
-                // Ensure cactus image is loaded before creating obstacle (usually true due to preload)
-                 if (cactusImages.every(img => img.complete && img.naturalHeight !== 0)) {
-                    obstacles.push(new Obstacle());
-                    frames = 0;
-                    const baseInterval = MIN_OBSTACLE_SPAWN_INTERVAL + Math.random() * (MAX_OBSTACLE_SPAWN_INTERVAL - MIN_OBSTACLE_SPAWN_INTERVAL);
-                    nextObstacleSpawnFrame = Math.max(30, baseInterval - (gameSpeed * 4)); // Adjust spawn rate based on speed
-                 }
+                obstacles.push(new Obstacle());
+                frames = 0;
+                const baseInterval = MIN_OBSTACLE_SPAWN_INTERVAL + Math.random() * (MAX_OBSTACLE_SPAWN_INTERVAL - MIN_OBSTACLE_SPAWN_INTERVAL);
+                // Faster speed = shorter interval, with minimum threshold
+                nextObstacleSpawnFrame = Math.max(30, baseInterval - (gameSpeed * 4));
             }
 
+            // Update and draw existing obstacles, remove off-screen ones
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].update();
                 obstacles[i].draw();
@@ -255,38 +278,45 @@
         // --- Collision Detection ---
         function checkCollisions() {
             for (const obstacle of obstacles) {
-                 // Simple AABB collision check - adjust padding slightly for better feel
-                 const padding = 5; // Reduce hitbox slightly
+                 // AABB collision check - adjust padding for better feel
+                 const hitBoxPaddingX = 5; // Reduce horizontal hitbox slightly
+                 const hitBoxPaddingY = 3; // Reduce vertical hitbox slightly
                 if (
-                    player.x < obstacle.x + obstacle.width - padding &&
-                    player.x + player.width > obstacle.x + padding &&
-                    player.y < obstacle.y + obstacle.height - padding &&
-                    player.y + player.height > obstacle.y + padding
+                    player.x < obstacle.x + obstacle.width - hitBoxPaddingX &&
+                    player.x + player.width > obstacle.x + hitBoxPaddingX &&
+                    player.y < obstacle.y + obstacle.height - hitBoxPaddingY &&
+                    player.y + player.height > obstacle.y + hitBoxPaddingY
                 ) {
-                    return true;
+                    return true; // Collision
                 }
             }
-            return false;
+            return false; // No collision
         }
 
         // --- Game Over Handling ---
         function triggerGameOver() {
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
-            gameOverElement.classList.remove('hidden'); // Show game over screen
+            gameOverElement.classList.remove('hidden');
             finalScoreElement.textContent = `Your Score: ${score}`;
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('pixelRunHighScoreEnhanced', highScore);
+                // Use a different key for SVG version high score
+                localStorage.setItem('pixelRunHighScoreSVG', highScore);
                 highScoreElement.textContent = highScore;
             }
         }
 
         // --- Game Initialization / Restart ---
         function startGame() {
-            player = createPlayer(); // Initialize player object
-            // Make sure player y is set correctly after image load handled it
-            player.y = GROUND_Y - player.height;
+            // Ensure this is only called after assets are ready
+            if (!gameReady) {
+                 console.warn("Attempted to start game before assets were ready.");
+                 return;
+            }
+            console.log("Starting/Restarting game state...");
+            player = createPlayer(); // Re-create player
+            player.y = GROUND_Y - player.height; // Ensure correct initial Y
             player.velocityY = 0;
             player.isJumping = false;
 
@@ -294,59 +324,63 @@
             gameSpeed = INITIAL_SPEED;
             score = 0;
             frames = 0;
-            nextObstacleSpawnFrame = MAX_OBSTACLE_SPAWN_INTERVAL;
+            nextObstacleSpawnFrame = MAX_OBSTACLE_SPAWN_INTERVAL; // Initial spawn delay
             isGameOver = false;
 
             scoreElement.textContent = score;
-            highScoreElement.textContent = highScore;
+            highScoreElement.textContent = highScore; // Ensure HS displayed correctly
             gameOverElement.classList.add('hidden'); // Hide game over screen
 
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
 
-            // Small delay before starting to ensure everything is rendered once
-            setTimeout(() => {
-                 animationFrameId = requestAnimationFrame(gameLoop);
-            }, 50);
+            // Start the game loop
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         // --- Input Handling ---
         function handleInput(event) {
-             // If game hasn't started (assets loading), don't process jump
-             if (!player || assetsLoaded < totalAssets) return;
+             // Ignore input if game isn't ready yet
+             if (!gameReady) return;
 
             if (isGameOver) {
                 // Allow restart via space/tap only if game over screen is visible
                 if ((event.code === 'Space' || event.type === 'touchstart' || event.type === 'mousedown') && !gameOverElement.classList.contains('hidden')) {
-                    // Check if the click/tap was on the button itself
-                    if (event.target !== restartButton) {
+                    // Prevent restart if click/tap was exactly on the button (let button handler do it)
+                     if (event.target !== restartButton && !restartButton.contains(event.target)) {
                          event.preventDefault();
                          startGame();
-                    }
+                     }
                 }
                 return; // Don't jump if game is over
             }
 
             // Handle jump
             if (event.code === 'Space' || event.type === 'touchstart' || event.type === 'mousedown') {
-                event.preventDefault(); // Prevent default behaviors
+                event.preventDefault();
                 player.jump();
             }
         }
 
         // --- Event Listeners ---
         document.addEventListener('keydown', handleInput);
-        document.addEventListener('touchstart', handleInput); // Use document for wider tap area
-        document.addEventListener('mousedown', handleInput);   // Use document for wider click area
+        // Add listeners to the document for wider capture area, especially for touch
+        document.addEventListener('touchstart', handleInput, { passive: false }); // passive: false needed for preventDefault
+        document.addEventListener('mousedown', handleInput);
+
+        // Ensure button click works reliably and doesn't trigger document handler
         restartButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent the document click listener from firing too
-            startGame();
+            e.stopPropagation(); // Prevent event bubbling up to document
+            if (gameReady) { // Only allow restart if game assets are loaded
+                startGame();
+            }
         });
 
         // --- Initial Setup ---
-        highScoreElement.textContent = highScore; // Display high score immediately
-        // The game will be started by the asset loader callback `assetLoaded()`
+        highScoreElement.textContent = highScore; // Display high score on load
+        // The game itself will be started by the asset loader callback `assetLoaded()`
+        console.log("Game setup complete. Waiting for assets...");
 
     </script>
 
